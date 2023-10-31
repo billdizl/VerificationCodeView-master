@@ -9,6 +9,7 @@ import android.os.Build;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -30,9 +31,9 @@ import java.lang.reflect.Field;
  * 时间:2023年10月31日10:54:59
  */
 
-public class VerificationCodeView extends LinearLayout implements TextWatcher, View.OnKeyListener, View.OnFocusChangeListener {
+public class VerificationCodeView extends LinearLayout {
 
-    private Context mContext;
+    private final Context mContext;
     private OnCodeFinishListener onCodeFinishListener;
 
     /**
@@ -251,18 +252,18 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
-    private void initEditText(EditText editText, int i) {
+    private void initEditText(final EditText editText, int i) {
         editText.setLayoutParams(getETLayoutParams(i));
         editText.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
         editText.setGravity(Gravity.CENTER);
         editText.setId(i);
         editText.setCursorVisible(false);
-        editText.setMaxEms(1);
+        editText.setMaxEms(2);
         editText.setTextColor(mEtTextColor);
         editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, mEtTextSize);
         editText.setCursorVisible(cursorVisible);
         editText.setMaxLines(1);
-        editText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(1)});
+        editText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2)});
         switch (mEtInputType) {
             case NUMBERPASSWORD:
                 editText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
@@ -277,12 +278,87 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
                 editText.setInputType(InputType.TYPE_CLASS_NUMBER);
         }
         editText.setPadding(0, 0, 0, 0);
-        editText.setOnKeyListener(this);
         editText.setBackgroundResource(mEtTextBg);
         setEditTextCursorDrawable(editText);
-        editText.addTextChangedListener(this);
-        editText.setOnKeyListener(this);
-        editText.setOnFocusChangeListener(this);
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int start, int lengthBefore, int lengthAfter) {
+                // 在文本变化时执行的操作
+//                if (charSequence.length() > 1) {
+//                    editText.setText(String.valueOf(charSequence.charAt(charSequence.length() - 1)));
+//                    editText.setSelection(1); // 将光标移动到末尾
+//                }
+                // 在文本变化时执行的操作
+                if (charSequence.length() > 1) {
+                    String newText;
+                    if (start == 1) {
+                        newText = charSequence.subSequence(charSequence.length() - 1, charSequence.length()).toString();
+                    } else {
+                        newText = charSequence.subSequence(0, charSequence.length() - 1).toString();
+                    }
+                    if (!TextUtils.isEmpty(newText)) {
+                        editText.setText(newText);
+                        editText.setSelection(1); // 将光标移动到末尾
+                    }
+                }
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s.length() != 0) {
+                    int id = getEditTextId(editText);
+                    if (mEtNumber > id + 1) {
+                        EditText childAt = (EditText) getChildAt(id + 1);
+                        focusOfEditText(needShowInputOfClickOtherEditText, childAt);
+                    }
+
+                    //focus(needShowInputOfClickOtherEditText);
+                }
+                if (onCodeFinishListener != null) {
+                    onCodeFinishListener.onTextChange(VerificationCodeView.this, getResult());
+                    //如果全部输入完了，则返回结果
+                    int count = getChildCount();
+                    int haveNoInput = 0;
+                    for (int i = 0; i < count; i++) {
+                        EditText editText = (EditText) getChildAt(i);
+                        if (editText.getText().length() < 1) {
+                            haveNoInput = haveNoInput + 1;
+                            break;
+                        }
+                    }
+                    if (haveNoInput == 0) {
+                        onCodeFinishListener.onComplete(VerificationCodeView.this, getResult());
+                    }
+//                    EditText lastEditText = (EditText) getChildAt(mEtNumber - 1);
+//                    if (lastEditText.getText().length() > 0) {
+//
+//                    }
+                }
+            }
+        });
+        editText.setOnKeyListener(new OnKeyListener() {
+            @Override
+            public boolean onKey(View view, int keyCode, KeyEvent keyEvent) {
+                if (keyCode == KeyEvent.KEYCODE_DEL && keyEvent.getAction() == KeyEvent.ACTION_DOWN) {
+                    backFocus();
+                }
+                return false;
+            }
+        });
+        editText.setOnFocusChangeListener(new OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if (b) {
+                    focusOfEditText(needShowInputOfClickOtherEditText, editText);
+                }
+            }
+        });
     }
 
     /**
@@ -340,46 +416,6 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
 
 
     @Override
-    public void onFocusChange(View view, boolean b) {
-        if (b) {
-            focus(needShowInputOfClickOtherEditText);
-        }
-    }
-
-    @Override
-    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-    }
-
-    @Override
-    public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-    }
-
-    @Override
-    public void afterTextChanged(Editable s) {
-        if (s.length() != 0) {
-            focus(needShowInputOfClickOtherEditText);
-        }
-        if (onCodeFinishListener != null) {
-            onCodeFinishListener.onTextChange(this, getResult());
-            //如果最后一个输入框有字符，则返回结果
-            EditText lastEditText = (EditText) getChildAt(mEtNumber - 1);
-            if (lastEditText.getText().length() > 0) {
-                onCodeFinishListener.onComplete(this, getResult());
-            }
-        }
-    }
-
-    @Override
-    public boolean onKey(View v, int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_DEL && event.getAction() == KeyEvent.ACTION_DOWN) {
-            backFocus();
-        }
-        return false;
-    }
-
-    @Override
     public void setEnabled(boolean enabled) {
         int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
@@ -406,7 +442,7 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
                 editText.requestFocus();
                 showSoftKeyboard(editText, isNeedShowSoftInput);
                 if (onCodeFinishListener != null) {
-                    onCodeFinishListener.onFourceEditTextListener(editText,i);
+                    onCodeFinishListener.onFourceEditTextListener(editText, i);
                 }
 
                 return;
@@ -418,6 +454,33 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
                 }
             }
         }
+    }
+
+
+    private void focusOfEditText(boolean isNeedShowSoftInput, EditText mEditText) {
+        int count = getChildCount();
+
+
+        if (mEditText != null) {
+            if (cursorVisible) {
+                mEditText.setCursorVisible(true);
+            } else {
+                mEditText.setCursorVisible(false);
+            }
+
+            mEditText.requestFocus();
+            showSoftKeyboard(mEditText, isNeedShowSoftInput);
+            if (onCodeFinishListener != null) {
+                int id = getEditTextId(mEditText);
+
+                if (count > id) {
+                    onCodeFinishListener.onFourceEditTextListener(mEditText, id);
+                }
+
+            }
+
+        }
+
     }
 
     /***
@@ -441,17 +504,33 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
         //循环检测有字符的`editText`，把其置空，并获取焦点。
         for (int i = mEtNumber - 1; i >= 0; i--) {
             editText = (EditText) getChildAt(i);
-            if (editText.getText().length() >= 1) {
-                editText.setText("");
-                if (cursorVisible) {
-                    editText.setCursorVisible(true);
-                } else {
-                    editText.setCursorVisible(false);
+            if (editText.isFocused()) {
+                if (editText.getText().length() >= 1) {
+                    editText.setText("");
                 }
-                editText.requestFocus();
-                return;
+                if (i > 0) {
+                    EditText nextEditText = (EditText) getChildAt(i - 1);
+                    if (cursorVisible) {
+                        nextEditText.setCursorVisible(true);
+                    } else {
+                        nextEditText.setCursorVisible(false);
+                    }
+                    nextEditText.requestFocus();
+                    break;
+                }
             }
+
         }
+//            if (editText.getText().length() >= 1) {
+//                editText.setText("");
+//                if (cursorVisible) {
+//                    editText.setCursorVisible(true);
+//                } else {
+//                    editText.setCursorVisible(false);
+//                }
+//                editText.requestFocus();
+//                return;
+//            }
     }
 
     private String getResult() {
@@ -462,6 +541,21 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
             stringBuffer.append(editText.getText());
         }
         return stringBuffer.toString();
+    }
+
+    /***
+     * 获取edittext的id
+     */
+    private int getEditTextId(EditText mEditText) {
+        if (mEditText != null) {
+            try {
+                return mEditText.getId();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return 0;
+
     }
 
     public interface OnCodeFinishListener {
@@ -478,12 +572,13 @@ public class VerificationCodeView extends LinearLayout implements TextWatcher, V
         /***
          * 获取到焦点的eidtText
          */
-        void onFourceEditTextListener(EditText mEditText,int mEditTextPostion);
+        void onFourceEditTextListener(EditText mEditText, int mEditTextPostion);
 
         /***
          * 点击空白区域的监听
          */
         void onClickEmptyAreaListener(LinearLayout mLinearLayout);
+
     }
 
     /**
