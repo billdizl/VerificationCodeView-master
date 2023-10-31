@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 自定义验证码输入框,仿滴滴输入框样式-->
+    <declare-styleable name="vericationCodeView">
+        <!--输入框的数量-->
+        <attr name="vcv_et_number" format="integer" />
+        <!--输入类型-->
+        <attr name="vcv_et_inputType">
+            <enum name="number" value="0" />
+            <enum name="numberPassword" value="1" />
+            <enum name="text" value="2" />
+            <enum name="textPassword" value="3" />
+        </attr>
+        <!--输入框的宽度-->
+        <attr name="vcv_et_width" format="dimension|reference" />
+        <!--输入框文字颜色-->
+        <attr name="vcv_et_text_color" format="color|reference" />
+        <!--输入框文字大小-->
+        <attr name="vcv_et_text_size" format="dimension|reference" />
+        <!--输入框背景-->
+        <attr name="vcv_et_bg" format="reference" />
+        <!--光标样式-->
+        <attr name="vcv_et_cursor" format="reference" />
+        <!--是否隐藏光标-->
+        <attr name="vcv_et_cursor_visible" format="boolean" />
+        <!--输入框间距，不输入则代表平分-->
+        <attr name="vcv_et_spacing" format="dimension|reference" />
+        <!--点击其他eidttex是否需要弹出键盘-->
+        <attr name="vcv_need_show_input" format="boolean" />
+        <!--点击空白区域是否需要弹出键盘-->
+        <attr name="vcv_need_show_input_of_other_empty_area" format="boolean" />
+        <!--是否需要手动处理键盘弹出(可能用户是自定义键盘)   优先级最高(设置了true之后 vcv_need_show_input vcv_need_show_input_of_other_empty_area设置将失效)-->
+        <attr name="vcv_need_manual_eject" format="boolean" />
+    </declare-styleable>
+
+</resources>
